@@ -59,6 +59,10 @@ dependencies {
 
 - Java 1.8+
 
+### Version 1.5.0-SNAPSHOT
+
+Works for latest's versions of prometheus, where consul's health endpoint is called instead of current catalog/service/{service_name}
+
 ### Versions 1.1.x and later
 - Spring Boot 2.1.x
 - Spring Cloud Greenwich

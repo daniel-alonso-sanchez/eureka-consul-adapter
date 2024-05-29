@@ -22,17 +22,7 @@
  */
 package at.twinformatics.eureka.adapter.consul.service;
 
-import at.twinformatics.eureka.adapter.consul.model.ChangeItem;
-import com.netflix.appinfo.InstanceInfo;
-import com.netflix.discovery.shared.Application;
-import com.netflix.eureka.registry.PeerAwareInstanceRegistry;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
-import rx.Observable;
-import rx.Single;
+import static java.util.stream.Collectors.toMap;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -43,7 +33,19 @@ import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import static java.util.stream.Collectors.toMap;
+import org.springframework.stereotype.Component;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+
+import com.netflix.appinfo.InstanceInfo;
+import com.netflix.discovery.shared.Application;
+import com.netflix.eureka.registry.PeerAwareInstanceRegistry;
+
+import at.twinformatics.eureka.adapter.consul.model.ChangeItem;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import rx.Observable;
+import rx.Single;
 
 /**
  * Returns Services and List of Service with its last changed
@@ -70,6 +72,20 @@ public class RegistrationService {
     }
 
     public Single<ChangeItem<List<InstanceInfo>>> getService(String appName, long waitMillis, Long index) {
+
+        return returnDeferred(waitMillis, index, () -> serviceChangeDetector.getLastEmittedOfApp(appName),
+                waitMillisInternal -> serviceChangeDetector.getIndexOfApp(appName, waitMillisInternal),
+                () -> {
+                    Application application = registry.getApplication(appName);
+                    if (application == null) {
+                        return Collections.emptyList();
+                    } else {
+                        return new ArrayList<>(application.getInstances());
+                    }
+                });
+    }
+
+    public Single<ChangeItem<List<InstanceInfo>>> getHealthService(String appName, long waitMillis, Long index) {
 
         return returnDeferred(waitMillis, index, () -> serviceChangeDetector.getLastEmittedOfApp(appName),
                 waitMillisInternal -> serviceChangeDetector.getIndexOfApp(appName, waitMillisInternal),

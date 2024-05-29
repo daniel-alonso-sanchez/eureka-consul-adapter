@@ -25,7 +25,6 @@ package at.twinformatics.eureka.adapter.consul.controller;
 import static java.util.stream.Collectors.toList;
 
 import java.util.List;
-import java.util.Map;
 
 import javax.ws.rs.QueryParam;
 
@@ -37,7 +36,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 
 import at.twinformatics.eureka.adapter.consul.mapper.InstanceInfoMapper;
-import at.twinformatics.eureka.adapter.consul.model.Service;
 import at.twinformatics.eureka.adapter.consul.model.ServiceHealth;
 import at.twinformatics.eureka.adapter.consul.service.RegistrationService;
 import lombok.RequiredArgsConstructor;
@@ -47,7 +45,8 @@ import rx.Single;
 @Controller
 @RequiredArgsConstructor
 @Slf4j
-public class ServiceController extends BaseConsulController {
+public class HealthController extends BaseConsulController {
+
 
 
     private static final String QUERY_PARAM_WAIT = "wait";
@@ -56,31 +55,13 @@ public class ServiceController extends BaseConsulController {
     private final RegistrationService registrationService;
     private final InstanceInfoMapper instanceInfoMapper;
 
-    @GetMapping(value = "/v1/catalog/services", produces = MediaType.APPLICATION_JSON_VALUE)
-    public Single<ResponseEntity<Map<String, String[]>>> getServiceNames(@QueryParam(QUERY_PARAM_WAIT) String wait,
-                                                                         @QueryParam(QUERY_PARAM_INDEX) Long index) {
-        return registrationService.getServiceNames(getWaitMillis(wait), index)
-                .map(item -> createResponseEntity(item.getItem(), item.getChangeIndex()));
-    }
-
-    @GetMapping(value = "/v1/catalog/service/{appName}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public Single<ResponseEntity<List<Service>>> getService(@PathVariable("appName") String appName,
-                                                            @QueryParam(QUERY_PARAM_WAIT) String wait,
-                                                            @QueryParam(QUERY_PARAM_INDEX) Long index) {
-        Assert.isTrue(appName != null, "service name can not be null");
-        return registrationService.getService(appName, getWaitMillis(wait), index)
-                .map(item -> {
-                    List<Service> services = item.getItem().stream().map(instanceInfoMapper::map).collect(toList());
-                    return createResponseEntity(services, item.getChangeIndex());
-                });
-    }
 
     @GetMapping(value = "/v1/health/service/{appName}", produces = MediaType.APPLICATION_JSON_VALUE)
     public Single<ResponseEntity<List<ServiceHealth>>> getServiceHealth(@PathVariable("appName") String appName,
                                                                         @QueryParam(QUERY_PARAM_WAIT) String wait,
                                                                         @QueryParam(QUERY_PARAM_INDEX) Long index) {
         Assert.isTrue(appName != null, "service name can not be null");
-        return registrationService.getService(appName, getWaitMillis(wait), index)
+        return registrationService.getHealthService(appName, getWaitMillis(wait), index)
                 .map(item -> {
                     List<ServiceHealth> services = item.getItem().stream()
                             .map(instanceInfoMapper::mapToHealth).collect(toList());
